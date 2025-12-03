@@ -11,3 +11,6 @@
 - [x] Frontend: Conversion progress indicator
 - [x] Frontend: CSV download functionality
 - [x] Frontend: Error handling and user feedback
+
+## Bugs
+- [x] Fix CSV download - Framer import fails with "url must be a valid uri" error

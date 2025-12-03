@@ -12,7 +12,7 @@ export default function Home() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [conversionResult, setConversionResult] = useState<{
-    csvUrl: string;
+    csvContent: string;
     fileName: string;
     preview: {
       title: string;
@@ -236,16 +236,23 @@ export default function Home() {
               </div>
 
               {/* Download Button */}
-              <a
-                href={conversionResult.csvUrl}
-                download={conversionResult.fileName}
-                className="block"
+              <Button 
+                onClick={() => {
+                  const blob = new Blob([conversionResult.csvContent], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = conversionResult.fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+                className="w-full h-12 bg-black hover:bg-gray-800 text-white rounded-xl font-medium text-sm transition-all"
               >
-                <Button className="w-full h-12 bg-black hover:bg-gray-800 text-white rounded-xl font-medium text-sm transition-all">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download CSV
-                </Button>
-              </a>
+                <Download className="w-4 h-4 mr-2" />
+                Download CSV
+              </Button>
 
               {/* Reset Button */}
               <Button

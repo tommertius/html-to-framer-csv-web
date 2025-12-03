@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure, router } from './_core/trpc';
 import { convertHtmlToFramerData, convertToCSV } from './converter';
-import { storagePut } from './storage';
 
 export const converterRouter = router({
   /**
@@ -25,18 +24,11 @@ export const converterRouter = router({
         
         // Convert to CSV format
         const csvContent = convertToCSV(result);
-        
-        // Upload CSV to S3
-        const fileName = `${result.slug}-${Date.now()}.csv`;
-        const { url: csvUrl } = await storagePut(
-          `conversions/${fileName}`,
-          csvContent,
-          'text/csv'
-        );
+        const fileName = `${result.slug}.csv`;
         
         return {
           success: true,
-          csvUrl,
+          csvContent,
           fileName,
           preview: {
             title: result.title,
