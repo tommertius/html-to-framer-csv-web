@@ -12,6 +12,24 @@ const upload = multer({
   },
 });
 
+// Sanitize filename to remove special characters and spaces
+function sanitizeFilename(filename: string): string {
+  // Get file extension
+  const lastDot = filename.lastIndexOf('.');
+  const name = lastDot !== -1 ? filename.substring(0, lastDot) : filename;
+  const ext = lastDot !== -1 ? filename.substring(lastDot) : '';
+  
+  // Replace spaces with hyphens, remove special characters, keep only alphanumeric and hyphens
+  const sanitized = name
+    .toLowerCase()
+    .replace(/\s+/g, '-')           // Replace spaces with hyphens
+    .replace(/[^a-z0-9-]/g, '')     // Remove all non-alphanumeric except hyphens
+    .replace(/-+/g, '-')            // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, '');         // Remove leading/trailing hyphens
+  
+  return sanitized + ext.toLowerCase();
+}
+
 // Handle file uploads
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -21,7 +39,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
     
     const file = req.file;
-    const fileKey = `uploads/${Date.now()}-${file.originalname}`;
+    const sanitizedName = sanitizeFilename(file.originalname);
+    const fileKey = `uploads/${Date.now()}-${sanitizedName}`;
     
     // Upload to S3
     const { url } = await storagePut(
