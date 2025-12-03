@@ -14,3 +14,4 @@
 
 ## Bugs
 - [x] Fix CSV download - Framer import fails with "url must be a valid uri" error
+- [x] Fix image URL - S3 storage returns relative path instead of full URL with https://

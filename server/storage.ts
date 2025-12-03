@@ -88,15 +88,24 @@ export async function storagePut(
       `Storage upload failed (${response.status} ${response.statusText}): ${message}`
     );
   }
-  const url = (await response.json()).url;
+  let url = (await response.json()).url;
+  // Ensure URL has protocol
+  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
   return { key, url };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
+  let url = await buildDownloadUrl(baseUrl, key, apiKey);
+  // Ensure URL has protocol
+  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
   return {
     key,
-    url: await buildDownloadUrl(baseUrl, key, apiKey),
+    url,
   };
 }
