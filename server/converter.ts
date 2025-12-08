@@ -376,7 +376,8 @@ export async function convertHtmlToFramerData(
   htmlContent: string,
   imageUrl: string,
   useAI: boolean = true,
-  metadata: ConversionMetadata = {}
+  metadata: ConversionMetadata = {},
+  uploadDate?: Date
 ): Promise<ConversionResult> {
   const dom = new JSDOM(htmlContent);
   const document = dom.window.document;
@@ -480,7 +481,9 @@ export async function convertHtmlToFramerData(
   }
   
   const category = metadata.category || determineCategoryFallback(title, contentText);
-  const date = metadata.date || new Date().toLocaleDateString('nl-NL');
+  // Use upload date if provided, otherwise use current date
+  const dateToUse = uploadDate || new Date();
+  const date = metadata.date || dateToUse.toLocaleDateString('nl-NL');
   
   if (aiGenerated) {
     console.log('✨ SEO fields generated with AI');

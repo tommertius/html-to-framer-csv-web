@@ -15,11 +15,16 @@ export const converterRouter = router({
     }))
     .mutation(async ({ input }) => {
       try {
+        // Use current timestamp as upload date
+        const uploadDate = new Date();
+        
         // Convert HTML to Framer data structure
         const result = await convertHtmlToFramerData(
           input.htmlContent,
           input.imageUrl,
-          input.useAI
+          input.useAI,
+          {}, // metadata
+          uploadDate
         );
         
         // Convert to CSV format
