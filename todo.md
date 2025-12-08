@@ -19,3 +19,5 @@
 
 - [x] Fix date field - Should use upload date consistently, not conversion processing date
 - [x] Fix date format - Use ISO8601 format (YYYY-MM-DD) instead of nl-NL locale format for Framer compatibility
+- [x] Fix sources detection - Should recognize "Referenties" regardless of heading level (H2, H3, etc.)
+- [x] Fix duplicate "Referenties" title in sources column - Should only appear once

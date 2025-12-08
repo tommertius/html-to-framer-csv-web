@@ -419,9 +419,20 @@ export async function convertHtmlToFramerData(
     .replace(/<p><\/p>/g, '')
     .replace(/<p> <\/p>/g, '');
   
+  // Filter out any "Referenties" heading at any level (h1-h6)
+  const filteredSourcesElements = sourcesElements.filter(e => {
+    const tagName = e.tagName.toLowerCase();
+    // Check if it's a heading element
+    if (tagName.match(/^h[1-6]$/)) {
+      const text = e.textContent?.trim().toLowerCase();
+      // Remove if it contains "referenties" or "bronnen"
+      return text !== 'referenties' && text !== 'bronnen';
+    }
+    return true;
+  });
+  
   const sourcesHtml = '<h2>Referenties</h2>' + 
-    sourcesElements
-      .filter(e => e.tagName.toLowerCase() !== 'h2')
+    filteredSourcesElements
       .map(e => elementToHtml(e, false))
       .join('')
       .replace(/<p><\/p>/g, '')
