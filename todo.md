@@ -18,3 +18,4 @@
 - [x] Fix filename encoding - Special characters and spaces in filenames break CloudFront URLs
 
 - [x] Fix date field - Should use upload date consistently, not conversion processing date
+- [x] Fix date format - Use ISO8601 format (YYYY-MM-DD) instead of nl-NL locale format for Framer compatibility

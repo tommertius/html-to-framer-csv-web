@@ -483,7 +483,8 @@ export async function convertHtmlToFramerData(
   const category = metadata.category || determineCategoryFallback(title, contentText);
   // Use upload date if provided, otherwise use current date
   const dateToUse = uploadDate || new Date();
-  const date = metadata.date || dateToUse.toLocaleDateString('nl-NL');
+  // Format as ISO8601 (YYYY-MM-DD) for Framer compatibility
+  const date = metadata.date || dateToUse.toISOString().split('T')[0];
   
   if (aiGenerated) {
     console.log('✨ SEO fields generated with AI');
