@@ -21,3 +21,8 @@
 - [x] Fix date format - Use ISO8601 format (YYYY-MM-DD) instead of nl-NL locale format for Framer compatibility
 - [x] Fix sources detection - Should recognize "Referenties" regardless of heading level (H2, H3, etc.)
 - [x] Fix duplicate "Referenties" title in sources column - Should only appear once
+
+## New Features
+- [x] Preview/edit screen - Show all generated fields after conversion with ability to edit before download
+- [x] Editable fields: title, slug, meta title, meta description, keywords, preview, category, date, image alt
+- [x] Download button on preview screen to generate CSV with edited values

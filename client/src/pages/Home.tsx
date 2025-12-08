@@ -2,8 +2,29 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Upload, FileText, Image as ImageIcon, Loader2, Download, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Upload, FileText, Image as ImageIcon, Loader2, Download, CheckCircle2, Edit3, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+// convertToCSV will be done on backend
+
+type ConversionData = {
+  title: string;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string;
+  preview: string;
+  category: string;
+  date: string;
+  readingTime: string;
+  imageUrl: string;
+  imageAlt: string;
+  firstParagraph: string;
+  content: string;
+  sources: string;
+};
 
 export default function Home() {
   const [htmlFile, setHtmlFile] = useState<File | null>(null);
@@ -11,21 +32,17 @@ export default function Home() {
   const [htmlContent, setHtmlContent] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
-  const [conversionResult, setConversionResult] = useState<{
-    csvContent: string;
-    fileName: string;
-    preview: {
-      title: string;
-      category: string;
-      readingTime: string;
-    };
-  } | null>(null);
+  const [conversionData, setConversionData] = useState<ConversionData | null>(null);
+  const [editedData, setEditedData] = useState<ConversionData | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const convertMutation = trpc.converter.convert.useMutation({
     onSuccess: (data) => {
-      setConversionResult(data);
-      toast.success("CSV gegenereerd!", {
-        description: "Je kunt het bestand nu downloaden."
+      setConversionData(data.data);
+      setEditedData(data.data);
+      setShowPreview(true);
+      toast.success("Conversie voltooid!", {
+        description: "Bekijk en bewerk de velden voordat je download."
       });
     },
     onError: (error) => {
@@ -51,7 +68,6 @@ export default function Home() {
       setIsUploading(true);
       
       try {
-        // Upload image to get URL
         const formData = new FormData();
         formData.append('file', file);
         
@@ -93,29 +109,78 @@ export default function Home() {
     });
   };
 
+  const generateCSVMutation = trpc.converter.generateCSV.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("CSV gedownload!");
+    },
+    onError: (error) => {
+      toast.error("Download mislukt", {
+        description: error.message
+      });
+    }
+  });
+
+  const handleDownload = () => {
+    if (!editedData) return;
+    generateCSVMutation.mutate(editedData);
+  };
+
   const handleReset = () => {
     setHtmlFile(null);
     setImageFile(null);
     setHtmlContent("");
     setImageUrl("");
-    setConversionResult(null);
+    setConversionData(null);
+    setEditedData(null);
+    setShowPreview(false);
+  };
+
+  const handleBack = () => {
+    setShowPreview(false);
+    setConversionData(null);
+    setEditedData(null);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white shadow-xl rounded-2xl overflow-hidden border-0">
+      <Card className="w-full max-w-2xl bg-white shadow-xl rounded-2xl overflow-hidden border-0">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3">
+          {showPreview && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              className="mr-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-white" />
+            {showPreview ? (
+              <Edit3 className="w-5 h-5 text-white" />
+            ) : (
+              <FileText className="w-5 h-5 text-white" />
+            )}
           </div>
-          <h1 className="text-lg font-semibold text-gray-900">HTML naar Framer CSV</h1>
+          <h1 className="text-lg font-semibold text-gray-900">
+            {showPreview ? "Bekijk & Bewerk" : "HTML naar Framer CSV"}
+          </h1>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
-          {!conversionResult ? (
-            <>
+        <div className="p-6">
+          {!showPreview ? (
+            <div className="space-y-4">
               {/* HTML File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -217,61 +282,137 @@ export default function Home() {
                   'Genereer CSV'
                 )}
               </Button>
-            </>
-          ) : (
-            <>
-              {/* Success State */}
-              <div className="text-center py-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+          ) : editedData && (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+              {/* Editable Fields */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title" className="text-sm font-medium text-gray-700">Titel</Label>
+                  <Input
+                    id="title"
+                    value={editedData.title}
+                    onChange={(e) => setEditedData({ ...editedData, title: e.target.value })}
+                    className="mt-1"
+                  />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                  CSV Gegenereerd!
-                </h2>
-                <div className="space-y-1 text-sm text-gray-600 mb-6">
-                  <p><span className="font-medium">Titel:</span> {conversionResult.preview.title}</p>
-                  <p><span className="font-medium">Categorie:</span> {conversionResult.preview.category}</p>
-                  <p><span className="font-medium">Leestijd:</span> {conversionResult.preview.readingTime}</p>
+
+                <div>
+                  <Label htmlFor="slug" className="text-sm font-medium text-gray-700">Slug</Label>
+                  <Input
+                    id="slug"
+                    value={editedData.slug}
+                    onChange={(e) => setEditedData({ ...editedData, slug: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="metaTitle" className="text-sm font-medium text-gray-700">Meta Title</Label>
+                  <Input
+                    id="metaTitle"
+                    value={editedData.metaTitle}
+                    onChange={(e) => setEditedData({ ...editedData, metaTitle: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="metaDescription" className="text-sm font-medium text-gray-700">Meta Description</Label>
+                  <Textarea
+                    id="metaDescription"
+                    value={editedData.metaDescription}
+                    onChange={(e) => setEditedData({ ...editedData, metaDescription: e.target.value })}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="keywords" className="text-sm font-medium text-gray-700">Keywords</Label>
+                  <Input
+                    id="keywords"
+                    value={editedData.keywords}
+                    onChange={(e) => setEditedData({ ...editedData, keywords: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="preview" className="text-sm font-medium text-gray-700">Preview</Label>
+                  <Textarea
+                    id="preview"
+                    value={editedData.preview}
+                    onChange={(e) => setEditedData({ ...editedData, preview: e.target.value })}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category" className="text-sm font-medium text-gray-700">Categorie</Label>
+                    <Input
+                      id="category"
+                      value={editedData.category}
+                      onChange={(e) => setEditedData({ ...editedData, category: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="date" className="text-sm font-medium text-gray-700">Datum</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={editedData.date}
+                      onChange={(e) => setEditedData({ ...editedData, date: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="imageAlt" className="text-sm font-medium text-gray-700">Afbeelding Alt Text</Label>
+                  <Input
+                    id="imageAlt"
+                    value={editedData.imageAlt}
+                    onChange={(e) => setEditedData({ ...editedData, imageAlt: e.target.value })}
+                    className="mt-1"
+                  />
                 </div>
               </div>
 
-              {/* Download Button */}
-              <Button 
-                onClick={() => {
-                  const blob = new Blob([conversionResult.csvContent], { type: 'text/csv' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = conversionResult.fileName;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }}
-                className="w-full h-12 bg-black hover:bg-gray-800 text-white rounded-xl font-medium text-sm transition-all"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download CSV
-              </Button>
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-4 border-t">
+                <Button
+                  onClick={handleDownload}
+                  className="w-full h-12 bg-black hover:bg-gray-800 text-white rounded-xl font-medium text-sm transition-all"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download CSV
+                </Button>
 
-              {/* Reset Button */}
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                className="w-full h-12 rounded-xl font-medium text-sm"
-              >
-                Nieuwe Conversie
-              </Button>
-            </>
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  className="w-full h-12 rounded-xl font-medium text-sm"
+                >
+                  Nieuwe Conversie
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-          <p className="text-xs text-gray-500 text-center">
-            Converteer HTML artikelen naar Framer CMS-compatibele CSV bestanden
-          </p>
-        </div>
+        {!showPreview && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <p className="text-xs text-gray-500 text-center">
+              Converteer HTML artikelen naar Framer CMS-compatibele CSV bestanden
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );
