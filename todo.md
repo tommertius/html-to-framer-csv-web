@@ -29,3 +29,4 @@
 - [x] Drag & drop support - Allow dragging files into upload areas
 - [x] Zip file support - Extract HTML from zipped files automatically
 - [x] Fix extra whitespace before tables in content output
+- [x] Fix links in CSV - Links should be clickable in Framer CMS (especially in references section)

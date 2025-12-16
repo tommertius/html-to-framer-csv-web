@@ -65,7 +65,8 @@ function elementToHtml(element: Element, isContent: boolean = true): string {
           }
         } else if (childTag === 'a') {
           const href = childElement.getAttribute('href') || '';
-          html += `<a href="${href}">${textContent}</a> `;
+          // Convert to Markdown format for Framer CMS compatibility
+          html += `[${textContent}](${href}) `;
         } else if (childTag === 'br') {
           if (isContent) {
             html = html.trimEnd() + '</p><p>';
