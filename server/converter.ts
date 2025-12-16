@@ -80,7 +80,7 @@ function elementToHtml(element: Element, isContent: boolean = true): string {
     const text = element.textContent?.trim() || '';
     return `<h2>${text}</h2>`;
   } else if (tagName === 'table') {
-    let html = '<p><br></p><table>';
+    let html = '<table>';
     const rows = Array.from(element.querySelectorAll('tr'));
     for (const row of rows) {
       html += '<tr>';

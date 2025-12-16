@@ -28,3 +28,4 @@
 - [x] Download button on preview screen to generate CSV with edited values
 - [x] Drag & drop support - Allow dragging files into upload areas
 - [x] Zip file support - Extract HTML from zipped files automatically
+- [x] Fix extra whitespace before tables in content output
