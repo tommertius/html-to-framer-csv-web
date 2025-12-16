@@ -47,7 +47,6 @@ export default function Home() {
     { message: "📝 Meta velden genereren...", duration: 1200 },
     { message: "🔮 Keywords ontdekken...", duration: 1000 },
     { message: "📄 CSV samenstellen...", duration: 600 },
-    { message: "✅ Klaar!", duration: 400 },
   ];
 
   const convertMutation = trpc.converter.convert.useMutation({
@@ -199,26 +198,25 @@ export default function Home() {
     // Start progress animation
     setProgressStep(0);
     
-    // Animate through progress steps
+    // Animate through progress steps continuously
     const animateProgress = async () => {
-      for (let i = 0; i < progressSteps.length; i++) {
+      let i = 0;
+      while (true) {
         setProgressStep(i);
         setProgressMessage(progressSteps[i].message);
         await new Promise(resolve => setTimeout(resolve, progressSteps[i].duration));
+        i = (i + 1) % progressSteps.length; // Loop back to start
       }
     };
 
     // Start animation and conversion in parallel
-    const animationPromise = animateProgress();
+    animateProgress();
     
     convertMutation.mutate({
       htmlContent,
       imageUrl,
       useAI: true
     });
-
-    // Wait for animation to complete
-    await animationPromise;
   };
 
   const generateCSVMutation = trpc.converter.generateCSV.useMutation({

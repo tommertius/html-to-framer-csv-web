@@ -33,3 +33,6 @@
 - [x] Magical progress feedback - Show real-time updates during conversion with playful messaging
 - [x] Progress steps: HTML parsing, SEO generation, image analysis, CSV creation
 - [x] Animated progress indicators with emoji and "touch of magic" wording
+
+## Recent Changes
+- [x] Remove "Klaar!" step from progress messages to allow continuous looping until conversion completes
