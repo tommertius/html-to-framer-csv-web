@@ -37,6 +37,18 @@ export default function Home() {
   const [showPreview, setShowPreview] = useState(false);
   const [isDraggingHtml, setIsDraggingHtml] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [progressMessage, setProgressMessage] = useState<string>("");
+  const [progressStep, setProgressStep] = useState<number>(0);
+
+  const progressSteps = [
+    { message: "✨ HTML ontleden...", duration: 800 },
+    { message: "🎯 SEO magie toepassen...", duration: 2000 },
+    { message: "🎨 Afbeelding analyseren...", duration: 1500 },
+    { message: "📝 Meta velden genereren...", duration: 1200 },
+    { message: "🔮 Keywords ontdekken...", duration: 1000 },
+    { message: "📄 CSV samenstellen...", duration: 600 },
+    { message: "✅ Klaar!", duration: 400 },
+  ];
 
   const convertMutation = trpc.converter.convert.useMutation({
     onSuccess: (data) => {
@@ -176,7 +188,7 @@ export default function Home() {
     }
   };
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     if (!htmlContent || !imageUrl) {
       toast.error("Beide bestanden zijn vereist", {
         description: "Upload zowel een HTML bestand als een afbeelding."
@@ -184,11 +196,29 @@ export default function Home() {
       return;
     }
 
+    // Start progress animation
+    setProgressStep(0);
+    
+    // Animate through progress steps
+    const animateProgress = async () => {
+      for (let i = 0; i < progressSteps.length; i++) {
+        setProgressStep(i);
+        setProgressMessage(progressSteps[i].message);
+        await new Promise(resolve => setTimeout(resolve, progressSteps[i].duration));
+      }
+    };
+
+    // Start animation and conversion in parallel
+    const animationPromise = animateProgress();
+    
     convertMutation.mutate({
       htmlContent,
       imageUrl,
       useAI: true
     });
+
+    // Wait for animation to complete
+    await animationPromise;
   };
 
   const generateCSVMutation = trpc.converter.generateCSV.useMutation({
@@ -368,10 +398,12 @@ export default function Home() {
                 className="w-full h-12 bg-black hover:bg-gray-800 text-white rounded-xl font-medium text-sm transition-all"
               >
                 {convertMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Converteren...
-                  </>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">{progressMessage || 'Converteren...'}</span>
+                    </div>
+                  </div>
                 ) : (
                   'Genereer CSV'
                 )}
