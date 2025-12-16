@@ -26,3 +26,5 @@
 - [x] Preview/edit screen - Show all generated fields after conversion with ability to edit before download
 - [x] Editable fields: title, slug, meta title, meta description, keywords, preview, category, date, image alt
 - [x] Download button on preview screen to generate CSV with edited values
+- [x] Drag & drop support - Allow dragging files into upload areas
+- [x] Zip file support - Extract HTML from zipped files automatically

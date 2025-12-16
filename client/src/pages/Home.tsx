@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, Image as ImageIcon, Loader2, Download, CheckCircle2, Edit3, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-// convertToCSV will be done on backend
+import JSZip from 'jszip';
 
 type ConversionData = {
   title: string;
@@ -35,6 +35,8 @@ export default function Home() {
   const [conversionData, setConversionData] = useState<ConversionData | null>(null);
   const [editedData, setEditedData] = useState<ConversionData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isDraggingHtml, setIsDraggingHtml] = useState(false);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
 
   const convertMutation = trpc.converter.convert.useMutation({
     onSuccess: (data) => {
@@ -52,45 +54,125 @@ export default function Home() {
     }
   });
 
+  const extractHtmlFromZip = async (file: File): Promise<string> => {
+    try {
+      const zip = new JSZip();
+      const contents = await zip.loadAsync(file);
+      
+      // Find the first HTML file in the zip
+      const htmlFile = Object.keys(contents.files).find(name => 
+        name.toLowerCase().endsWith('.html') && !name.startsWith('__MACOSX')
+      );
+      
+      if (!htmlFile) {
+        throw new Error('Geen HTML bestand gevonden in de zip');
+      }
+      
+      const htmlContent = await contents.files[htmlFile].async('text');
+      return htmlContent;
+    } catch (error) {
+      throw new Error('Kon zip bestand niet uitpakken: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const processHtmlFile = async (file: File) => {
+    setHtmlFile(file);
+    try {
+      let content: string;
+      
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        toast.info("Zip bestand uitpakken...");
+        content = await extractHtmlFromZip(file);
+        toast.success("HTML geëxtraheerd uit zip");
+      } else {
+        content = await file.text();
+      }
+      
+      setHtmlContent(content);
+    } catch (error) {
+      toast.error("Fout bij verwerken bestand", {
+        description: error instanceof Error ? error.message : "Probeer opnieuw"
+      });
+      setHtmlFile(null);
+      setHtmlContent("");
+    }
+  };
+
   const handleHtmlFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setHtmlFile(file);
-      const content = await file.text();
-      setHtmlContent(content);
+      await processHtmlFile(file);
+    }
+  };
+
+  const handleHtmlDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingHtml(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const isValidFile = file.name.toLowerCase().endsWith('.html') || 
+                         file.name.toLowerCase().endsWith('.zip');
+      if (isValidFile) {
+        await processHtmlFile(file);
+      } else {
+        toast.error("Ongeldig bestandstype", {
+          description: "Upload een .html of .zip bestand"
+        });
+      }
     }
   };
 
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      setIsUploading(true);
-      
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
+      await uploadImage(file);
+    }
+  };
+
+  const handleImageDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingImage(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        await uploadImage(file);
+      } else {
+        toast.error("Ongeldig bestandstype", {
+          description: "Upload een afbeelding (JPG, PNG, WebP)"
         });
-        
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
-        
-        const data = await response.json();
-        setImageUrl(data.url);
-        toast.success("Afbeelding geüpload");
-      } catch (error) {
-        toast.error("Upload mislukt", {
-          description: error instanceof Error ? error.message : "Probeer opnieuw"
-        });
-        setImageFile(null);
-      } finally {
-        setIsUploading(false);
       }
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    setImageFile(file);
+    setIsUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setImageUrl(data.url);
+      toast.success("Afbeelding geüpload");
+    } catch (error) {
+      toast.error("Upload mislukt", {
+        description: error instanceof Error ? error.message : "Probeer opnieuw"
+      });
+      setImageFile(null);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -181,17 +263,23 @@ export default function Home() {
         <div className="p-6">
           {!showPreview ? (
             <div className="space-y-4">
-              {/* HTML File Upload */}
+              {/* HTML File Upload with Drag & Drop */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   HTML Artikel
                 </label>
                 <label
                   htmlFor="html-upload"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingHtml(true);
+                  }}
+                  onDragLeave={() => setIsDraggingHtml(false)}
+                  onDrop={handleHtmlDrop}
                   className={`
                     flex items-center gap-3 p-4 border-2 border-dashed rounded-xl cursor-pointer
                     transition-all hover:border-gray-400 hover:bg-gray-50
-                    ${htmlFile ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
+                    ${htmlFile ? 'border-blue-500 bg-blue-50' : isDraggingHtml ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}
                   `}
                 >
                   <div className={`
@@ -206,33 +294,39 @@ export default function Home() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium ${htmlFile ? 'text-blue-700' : 'text-gray-600'}`}>
-                      {htmlFile ? htmlFile.name : 'Upload HTML bestand'}
+                      {htmlFile ? htmlFile.name : 'Upload of sleep HTML bestand'}
                     </p>
                     {!htmlFile && (
-                      <p className="text-xs text-gray-400">Google Docs export (.html)</p>
+                      <p className="text-xs text-gray-400">Google Docs export (.html) of .zip</p>
                     )}
                   </div>
                 </label>
                 <input
                   id="html-upload"
                   type="file"
-                  accept=".html"
+                  accept=".html,.zip"
                   onChange={handleHtmlFileChange}
                   className="hidden"
                 />
               </div>
 
-              {/* Image File Upload */}
+              {/* Image File Upload with Drag & Drop */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Afbeelding
                 </label>
                 <label
                   htmlFor="image-upload"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingImage(true);
+                  }}
+                  onDragLeave={() => setIsDraggingImage(false)}
+                  onDrop={handleImageDrop}
                   className={`
                     flex items-center gap-3 p-4 border-2 border-dashed rounded-xl cursor-pointer
                     transition-all hover:border-gray-400 hover:bg-gray-50
-                    ${imageFile ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
+                    ${imageFile ? 'border-blue-500 bg-blue-50' : isDraggingImage ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}
                     ${isUploading ? 'opacity-50 pointer-events-none' : ''}
                   `}
                 >
@@ -250,7 +344,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium ${imageFile ? 'text-blue-700' : 'text-gray-600'}`}>
-                      {imageFile ? imageFile.name : 'Upload afbeelding'}
+                      {imageFile ? imageFile.name : 'Upload of sleep afbeelding'}
                     </p>
                     {!imageFile && (
                       <p className="text-xs text-gray-400">JPG, PNG of WebP</p>
