@@ -64,9 +64,23 @@ function elementToHtml(element: Element, isContent: boolean = true): string {
             html += textContent + ' ';
           }
         } else if (childTag === 'a') {
-          const href = childElement.getAttribute('href') || '';
-          // Convert to Markdown format for Framer CMS compatibility
-          html += `[${textContent}](${href}) `;
+          let href = childElement.getAttribute('href') || '';
+          
+          // Extract real URL from Google Docs redirect URLs
+          if (href.includes('google.com/url?q=')) {
+            try {
+              const url = new URL(href);
+              const realUrl = url.searchParams.get('q');
+              if (realUrl) {
+                href = realUrl;
+              }
+            } catch (e) {
+              // Keep original href if parsing fails
+            }
+          }
+          
+          // Use the URL as both href and visible text for Framer compatibility
+          html += `<a href="${href}">${href}</a> `;
         } else if (childTag === 'br') {
           if (isContent) {
             html = html.trimEnd() + '</p><p>';
